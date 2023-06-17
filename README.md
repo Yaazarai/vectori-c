@@ -1,21 +1,5 @@
 # vectori-c
-Vector w/ Internal Iterator in C (with option void pointer type). Calling `vectori_free()` will free the underlying vector memory, but NOT any dynamically allocated pointers/items it may store--that needs to be done manually.
-
-`optvoidpntr_t` is a struct which stores info to allocated memory of a `void*`:
-
-```C
-// optvoidpntr_t typedef struct.
-typedef struct optvoidpntr_t { bool32_t hasValue; void_t* value; } optvoidpntr_t;
-
-// Returns a default struct (zero init) with no pointer allocation.
-optvoidpntr_t  optvoidpntr_def();
-// Sets the pointer of this optional type.
-void_t         optvoidpntr_set(optvoidpntr_t* val, void_t* pntr);
-// Returns TRUE if the pointer has memory, else FALSE.
-bool32_t       optvoidpntr_has(optvoidpntr_t* val);
-// Returns the underlying pointer.
-void_t*        optvoidpntr_val(optvoidpntr_t* val);
-```
+Vector w/ Internal Iterator in C. Calling `vectori_free()` will free the underlying vector memory, but NOT any dynamically allocated pointers/items it may store--that needs to be done manually.
 
 ```C
 /// Default item count for new vectors.
@@ -23,7 +7,7 @@ void_t*        optvoidpntr_val(optvoidpntr_t* val);
 
 /// Vector with internal iterator that accepts void* (generic) data with byte-size typeSize.
 typedef struct vectori {
-	optvoidpntr_t data; // Data Pointer
+	void_t* data; // Data Pointer
 	int32_t typeSize; // Type Size (Byte Length)
 	size_t length;   // Current Size (Bytes, not Items)
 	size_t iterator; // Current Iterator (Bytes, not Items)
@@ -66,5 +50,5 @@ void_t* vectori_get(vectori* vector, size_t index);
 /// Returns a pointer to a new string constructor from a vector: outLen can be pointer to get length, or NULL to ignore.
 char_t* vectori_makestr(vectori* vector, size_t first, size_t last, size_t* outLen);
 /// Creates a calloc'd copy of the passed string.
-har_t* vectori_cpystr(const char_t* str)
+char_t* vectori_cpystr(const char_t* str)
 ```
