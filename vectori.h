@@ -1,21 +1,26 @@
 #pragma once
-#ifndef VECTORI_LIBRARY
-#define VECTORI_LIBRARY
+#ifndef C_VECTOR_H
+#define C_VECTOR_H
 	
 	#include <stdbool.h>
 	#include <stdint.h>
-
-	typedef struct optvoidpntr_t { bool32_t hasValue; void_t* value; } optvoidpntr_t;
-	optvoidpntr_t  optvoidpntr_def() { return (optvoidpntr_t) { PVK_FALSE, NULL }; }
-	void_t         optvoidpntr_set(optvoidpntr_t* val, void_t* pntr) { val->hasValue = (pntr == NULL) ? PVK_FALSE : PVK_TRUE; val->value = pntr; }
-	bool32_t       optvoidpntr_has(optvoidpntr_t* val) { return val->hasValue; }
-	void_t*        optvoidpntr_val(optvoidpntr_t* val) { return val->value; }
 	
+	#ifndef C_UNIFORM_TYPES
+	#define C_UNIFORM_TYPES
+		typedef uint8_t uint08_t;
+		typedef float float32_t;
+		typedef double float64_t;
+		typedef bool bool_t;
+		typedef char char_t;
+		typedef int8_t int08_t;
+		typedef void void_t;
+	#endif
+
 	/// 
 	/// Vector Implementation w/ Iterator
 	///		Maintains an internal iterator that keeps track of the
 	///		number of elements written to the array. Elements can be
-	///		anytype, but their structure size must match the typeSize.
+	///		any type, but their structure size must match the typeSize.
 	///			E.g. if you use int32_t, typeSize must be sizeof(int32_t).
 	///		
 	///		NOTE: Vector is not default initialized to zero,
@@ -30,194 +35,201 @@
 	///		Calling vector_clear(...) will clear all elements of the vector
 	///		to a specific element/value and reset the iterator to ZERO.
 	///		
-	///		Calling vector_last() within a loop during vector_isnert()
+	///		Calling vector_last() within a loop during vector_insert()
 	///		will cause an infinite loop due to continually moving the iterator.
 	///		
 	///		Default length is 32 element redefine the following macro
 	///		with the intended length for new default sizes needed.
 	///		
-	///			#define VECTORI_DEFAULT_LENGTH 32
+	///			#define vector_DEFAULT_LENGTH 32
 	/// 
 
 	/// Default item count for new vectors.
-	#define VECTORI_DEFAULT_LENGTH 32
+	#ifndef VECTOR_DEFAULT_LENGTH
+		#define VECTOR_DEFAULT_LENGTH 32
+	#endif
 
 	/// Vector with internal iterator that accepts void* (generic) data with byte-size typeSize.
-	typedef struct vectori {
-		optvoidpntr_t data; // Data Pointer
+	typedef struct vector {
+		void_t* data; // Data Pointer
 		int32_t typeSize; // Type Size (Byte Length)
 		size_t length;   // Current Size (Bytes, not Items)
 		size_t iterator; // Current Iterator (Bytes, not Items)
-	} vectori;
+	} vector;
 
-	#ifndef TRUE
-	#definev TRUE(int)1
-	#definev FALSE(int)0
-	#endif
+	#define VECTOR_MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+	#define VECTOR_MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
-	/// Returns a new vector (with memory allocated if reserved is TRUE) with default length vectori_DEFAULT_LENGTH.
-	vectori vectori_calloc(int32_t typeSize, bool32_t reserve) {
-		optvoidpntr_t vector = optvoidpntr_def();
-		size_t len = (size_t)(reserve * VECTORI_DEFAULT_LENGTH);
-		optvoidpntr_set(&vector, calloc(len, typeSize));
-		len *= typeSize;
-		return { vector, typeSize, len, 0 };
+	/// Returns a new vector (with memory allocated if reserved is TRUE) with default length vector_DEFAULT_LENGTH.
+	vector vector_calloc(int32_t typeSize, bool_t reserve) {
+		size_t len = (size_t)(reserve * VECTOR_DEFAULT_LENGTH);
+		return (vector) { calloc(len, typeSize), typeSize, len * typeSize, 0 };
 	}
 
 	/// Returns a new vector (with memory allocated if reserved is TRUE).
-	vectori vectori_calloc2(int32_t typeSize, size_t length, bool32_t reserve) {
-		optvoidpntr_t vector = optvoidpntr_def();
+	vector vector_calloc2(int32_t typeSize, size_t length, bool_t reserve) {
 		size_t len = (size_t)(reserve * length);
-		optvoidpntr_set(&vector, calloc(len, typeSize));
-		len *= (size_t)typeSize;
-		return { vector, typeSize, len, 0 };
+		return (vector) { calloc(len, typeSize), typeSize, len * (size_t)typeSize, 0 };
 	}
 
 	/// Returns TRUE if the vector was free'd, else FALSE if the vector passed is not allocated.
-	void_t vectori_free(vectori* vector) {
-		free(vector->data.value);
-		vector->data = optvoidpntr_def();
+	bool_t vector_free(vector* vector) {
+		if (vector == NULL || vector->data == NULL) return false;
+		free(vector->data);
+		vector->data = NULL;
+		return true;
 	}
 
 	/// Attempts to resize the vector: Returns true if the vector is allocated (regardless if it was resized), else FALSE.
-	bool32_t vectori_realloc(vectori* vector, size_t length) {
-		void_t* data = realloc(vector->data.value, length * vector->typeSize);
+	bool_t vector_realloc(vector* vector, size_t length) {
+		void_t* data = realloc(vector->data, length * vector->typeSize);
 
 		if (data != NULL) {
-			optvoidpntr_set(&vector->data, data);
+			vector->data = data;
 			vector->length = length * vector->typeSize;
-			return TRUE * optvoidpntr_has(&vector->data);
+			return vector->data != NULL;
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	/// Returns TRUE if the vector is allocated, else FALSE.
-	bool32_t vectori_isalloc(vectori* vector) {
-		return optvoidpntr_has(&vector->data);
+	bool_t vector_isalloc(vector* vector) {
+		return &vector->data != NULL;
 	}
 
 	/// Returns the full byte-length of allocated memory for a vector.
-	size_t vectori_bytesize(vectori* vector) {
+	size_t vector_bytesize(vector* vector) {
 		return vector->length;
 	}
 
 	/// Returns the maximum number of elements that can be written (until resized on insert).
-	size_t vectori_maxsize(vectori* vector) {
+	size_t vector_maxsize(vector* vector) {
 		return vector->length / vector->typeSize;
 	}
 
 	/// Returns the byte-size of the type used for allocations within a vector.
-	size_t vectori_typesize(vectori* vector) {
+	size_t vector_typesize(vector* vector) {
 		return vector->typeSize;
 	}
 
 	/// Returns the last iterator position (same-as item count) of a vector.
-	size_t vectori_last(vectori* vector) {
+	size_t vector_last(vector* vector) {
 		return (vector->iterator / vector->typeSize);
+	}
+
+	/// Returns the item count (same-as last iterator position) of a vector.
+	size_t vector_count(vector* vector) {
+		return vector_last(vector);
 	}
 	
 	/// Returns the first position (0) of a vector. [Redundant, Placeholder]
-	size_t vectori_first(vectori* vector) {
+	size_t vector_first(vector* vector) {
 		return 0;
 	}
 
 	/// Returns FALSE if [iterator] is not within bounds length > iterator >= 0, else TRUE and set new iterator position.
-	bool32_t vectori_move(vectori* vector, size_t iterator) {
-		if (optvoidpntr_has(&vector->data) == FALSE
-			|| (iterator * vector->typeSize) < 0 || (iterator*vector->typeSize) > vector->length)
-			return FALSE;
+	bool_t vector_move(vector* vector, size_t iterator) {
+		if (&vector->data == NULL || (iterator * vector->typeSize) < 0 || (iterator*vector->typeSize) > vector->length)
+			return false;
 
 		vector->iterator = iterator * vector->typeSize;
-		return TRUE;
+		return true;
 	}
 
 	/// Returns TRUE if the vector can be cleared, else FALSE.
-	bool32_t vectori_clear(vectori* vector, void_t* data) {
-		if (optvoidpntr_has(&vector->data) == FALSE || vector->length <= 0)
-			return FALSE;
+	bool_t vector_clear(vector* vector, void_t* data) {
+		if (&vector->data == NULL || vector->length <= 0)
+			return false;
 
 		for(size_t i = 0; i < vector->length; i += vector->typeSize)
-			memcpy((int8_t*)vector->data.value + i, data, vector->typeSize);
+			memcpy((int08_t*)vector->data + i, data, vector->typeSize);
 
 		vector->iterator = 0;
-		return TRUE;
+		return true;
 	}
 
 	/// Returns TRUE if the vector is allocated and the element at [index] can be written, else FALSE.
-	bool32_t vectori_insert(vectori* vector, void_t* data, size_t index) {
+	bool_t vector_insert(vector* vector, void_t* data, size_t index) {
 		size_t byteIndex = index * vector->typeSize;
 
 		if (vector->iterator == vector->length)
-			vectori_realloc(vector, vector->length << 1);
+			vector_realloc(vector, vector->length << 1);
 
-		if (optvoidpntr_has(&vector->data) == FALSE || byteIndex < 0 || byteIndex > vector->iterator)
-			return FALSE;
+		if (&vector->data == NULL || byteIndex < 0 || byteIndex > vector->iterator)
+			return false;
 
-		memmove((int8_t*)vector->data.value + (byteIndex + vector->typeSize), (int8_t*)vector->data.value + byteIndex, vector->iterator - byteIndex);
-		memcpy((int8_t*)vector->data.value + byteIndex, data, vector->typeSize);
+		memmove((int08_t*)vector->data + (byteIndex + vector->typeSize), (int08_t*)vector->data + byteIndex, vector->iterator - byteIndex);
+		memcpy((int08_t*)vector->data + byteIndex, data, vector->typeSize);
 		vector->iterator += vector->typeSize;
-		return TRUE;
+		return true;
 	}
 
 	/// Returns TRUE if the item replaces an existing item in the vector, else FALSE.
-	bool32_t vectori_replace(vectori* vector, void_t* data, size_t index) {
+	bool_t vector_replace(vector* vector, void_t* data, size_t index) {
 		size_t byteIndex = index * vector->typeSize;
 
-		if (optvoidpntr_has(&vector->data) == FALSE || byteIndex < 0 || byteIndex >= vector->iterator)
-			return FALSE;
+		if (&vector->data == NULL || byteIndex < 0 || byteIndex >= vector->iterator)
+			return false;
 
-		memcpy((int8_t*)vector->data.value + byteIndex, data, vector->typeSize);
-		return TRUE;
+		memcpy((int08_t*)vector->data + byteIndex, data, vector->typeSize);
+		return true;
 	}
 
 	/// Returns TRUE if the item replaces an existing item in the vector, else FALSE.
-	bool32_t vectori_replace_unsafe(vectori* vector, void_t* data, size_t index, size_t byteCount) {
+	bool_t vector_replace_unsafe(vector* vector, void_t* data, size_t index, size_t byteCount) {
 		size_t byteIndex = index * vector->typeSize;
 
-		if (optvoidpntr_has(&vector->data) == FALSE || byteIndex < 0 || byteIndex >= vector->iterator)
-			return FALSE;
+		if (&vector->data == NULL || byteIndex < 0 || byteIndex >= vector->iterator)
+			return false;
 
-		memmove((int8_t*)vector->data.value + byteIndex, data, byteCount);
-		return TRUE;
+		memmove((int08_t*)vector->data + byteIndex, data, byteCount);
+		return true;
 	}
 
 	/// Returns TRUE if the element at [index] can be removed, else FALSE.
-	bool32_t vectori_remove(vectori* vector, size_t index) {
+	bool_t vector_remove(vector* vector, size_t index) {
 		size_t byteIndex = index * vector->typeSize;
-		if (optvoidpntr_has(&vector->data) == FALSE || byteIndex < 0 || byteIndex > vector->iterator)
-			return FALSE;
+		if (vector->data == NULL || byteIndex < 0 || byteIndex > vector->iterator)
+			return false;
 
 		vector->iterator -= (vector->iterator > 0)? vector->typeSize : 0;
-		memmove((int8_t*)vector->data.value + byteIndex, (int8_t*)vector->data.value + byteIndex + vector->typeSize, vector->iterator - byteIndex);
-		return TRUE;
+		memmove((int08_t*)vector->data + byteIndex, (int08_t*)vector->data + byteIndex + vector->typeSize, vector->iterator - byteIndex);
+		return true;
+	}
+
+	typedef _CoreCrtNonSecureSearchSortCompareFunction qsort_callback;
+	/// Uses qsort from <stdlib.h> to sort the items in a vector.
+	void_t vector_qsort(vector* vector, qsort_callback sorter) {
+		qsort(vector->data, (vector->iterator / vector->typeSize), vector->typeSize, sorter);
 	}
 
 	/// Returns NULL if index is not within bounds iterator > index >= 0 or returns pointer to element in vector.
-	void_t* vectori_get(vectori* vector, size_t index) {
+	void_t* vector_get(vector* vector, size_t index) {
 		size_t byteIndex = index * vector->typeSize;
-		if (optvoidpntr_has(&vector->data) == FALSE || byteIndex < 0 || byteIndex > vector->iterator)
+		if (&vector->data == NULL || byteIndex < 0 || byteIndex > vector->iterator)
 			return NULL;
 
-		return (int8_t*)vector->data.value + byteIndex;
+		return (int08_t*)vector->data + byteIndex;
 	}
 
-	/// Returns a pointer to a new string constructor from a vector: outLen can be pointer to get length, or NULL to ignore.
-	char_t* vectori_makestr(vectori* vector, size_t first, size_t last, size_t* outLen) {
+	/// Returns a pointer to a new string constructed from a vector: outLen can be pointer to get length, or NULL to ignore.
+	char_t* vector_makestr(vector* vector, size_t first, size_t last, size_t* outLen) {
 		if (outLen != NULL) {
-			(*outLen) = PICOVK_MIN(0, PICOVK_MAX(last - first, last));
+			(*outLen) = VECTOR_MIN(0, VECTOR_MAX(last - first, last));
 			char_t* string = (char_t*) calloc((*outLen) + 1, sizeof(char_t));
-			memmove(string, vector->data.value, (*outLen));
+			memmove(string, vector->data, (*outLen));
 			return string;
 		} else {
-			size_t length = PICOVK_MIN(0, PICOVK_MAX(last - first, last));
+			size_t length = VECTOR_MIN(0, VECTOR_MAX(last - first, last));
 			char_t* string = (char_t*) calloc(length + 1, sizeof(char_t));
-			memmove(string, vector->data.value, length);
+			memmove(string, vector->data, length);
 			return string;
 		}
 	}
 
-	char_t* vectori_cpystr(const char_t* str) {
+	/// Returns a pointer to a new string that is a copy of the input string.
+	char_t* vector_cpystr(const char_t* str) {
 		size_t length = strlen(str);
 		char_t* string = (char_t*) calloc(length + 1, sizeof(char_t));
 		memmove(string, str, length);
