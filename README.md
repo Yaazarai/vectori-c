@@ -52,3 +52,35 @@ char_t* vector_makestr(vector* vector, size_t first, size_t last, size_t* outLen
 /// Creates a calloc'd copy of the passed string.
 char_t* vector_cpystr(const char_t* str)
 ```
+The following is a simple program that allocates a vector of `some_struct` (a custom struct), inserts 4 of `some_struct` copies into the vector and then gets and outputs their contents. When creating a vector, the data contents are an array of (`int8` or `char`) and not the desired type which means you need to cast the returned `void*` (non-typed memory) address in memory to the desired type pointer, then dereference that pointer to access the data.
+```C
+#include "vector.h"
+#include <stdio.h>
+
+typedef struct some_struct {
+	int xpos, ypos;
+} some_struct;
+
+int main() {
+	some_struct struct1 = { 32, 32 },
+		struct2 = { 0, 32 },
+		struct3 = { 32, 0 },
+		struct4 = { 0, 0 };
+	
+	vector vstructs = vector_calloc2(sizeof(some_struct), 4, true);
+	vector_insert(&vstructs, &struct1, vector_count(&vstructs));
+	vector_insert(&vstructs, &struct2, vector_count(&vstructs));
+	vector_insert(&vstructs, &struct3, vector_count(&vstructs));
+	vector_insert(&vstructs, &struct4, vector_count(&vstructs));
+
+	for (size_t i = 0; i < vector_count(&vstructs); i++) {
+		some_struct strct = *(some_struct*) vector_get(&vstructs, i);
+		printf("%d, ", strct.xpos);
+		printf("%d\n", strct.ypos);
+	}
+
+	vector_free(&vstructs);
+
+	return 0;
+}
+```
