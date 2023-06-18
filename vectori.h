@@ -2,6 +2,8 @@
 #ifndef C_VECTOR_H
 #define C_VECTOR_H
 	
+	#include <stdlib.h>
+	#include <string.h>
 	#include <stdbool.h>
 	#include <stdint.h>
 	
@@ -128,7 +130,7 @@
 		return 0;
 	}
 
-	/// Returns FALSE if [iterator] is not within bounds length > iterator >= 0, else TRUE and set new iterator position.
+	/// Returns FALSE if [iterator] is not within bounds length >= iterator >= 0, else TRUE and set new iterator position.
 	bool_t vector_move(vector* vector, size_t iterator) {
 		if (&vector->data == NULL || (iterator * vector->typeSize) < 0 || (iterator*vector->typeSize) > vector->length)
 			return false;
