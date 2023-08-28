@@ -53,10 +53,10 @@
 
 	/// Vector with internal iterator that accepts void* (generic) data with byte-size typeSize.
 	typedef struct vector {
-		void_t* data; // Data Pointer
 		int32_t typeSize; // Type Size (Byte Length)
 		size_t length;   // Current Size (Bytes, not Items)
 		size_t iterator; // Current Iterator (Bytes, not Items)
+		void_t* data; // Data Pointer
 	} vector;
 
 	#define VECTOR_MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
@@ -65,13 +65,13 @@
 	/// Returns a new vector (with memory allocated if reserved is TRUE) with default length vector_DEFAULT_LENGTH.
 	vector vector_calloc(int32_t typeSize, bool_t reserve) {
 		size_t len = (size_t)(reserve * VECTOR_DEFAULT_LENGTH);
-		return (vector) { calloc(len, typeSize), typeSize, len * typeSize, 0 };
+		return { typeSize, len * typeSize, 0, calloc(len, typeSize) };
 	}
 
 	/// Returns a new vector (with memory allocated if reserved is TRUE).
 	vector vector_calloc2(int32_t typeSize, size_t length, bool_t reserve) {
-		size_t len = (size_t)(reserve * length);
-		return (vector) { calloc(len, typeSize), typeSize, len * (size_t)typeSize, 0 };
+		size_t len = (size_t)((reserve?1:0) * length);
+		return { typeSize, len * (size_t)typeSize, 0, calloc(len, typeSize) };
 	}
 
 	/// Returns TRUE if the vector was free'd, else FALSE if the vector passed is not allocated.
