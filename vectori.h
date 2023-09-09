@@ -65,13 +65,13 @@
 	/// Returns a new vector (with memory allocated if reserved is TRUE) with default length vector_DEFAULT_LENGTH.
 	vector vector_calloc(int32_t typeSize, bool_t reserve) {
 		size_t len = (size_t)(reserve * VECTOR_DEFAULT_LENGTH);
-		return { typeSize, len * typeSize, 0, calloc(len, typeSize) };
+		return (vector) { typeSize, len * typeSize, 0, (reserve)? calloc(len, typeSize) : NULL };
 	}
 
 	/// Returns a new vector (with memory allocated if reserved is TRUE).
 	vector vector_calloc2(int32_t typeSize, size_t length, bool_t reserve) {
 		size_t len = (size_t)((reserve?1:0) * length);
-		return { typeSize, len * (size_t)typeSize, 0, calloc(len, typeSize) };
+		return (vector) { typeSize, len * (size_t)typeSize, 0, (reserve)? calloc(len, typeSize) : NULL };
 	}
 
 	/// Returns TRUE if the vector was free'd, else FALSE if the vector passed is not allocated.
@@ -89,7 +89,7 @@
 		if (data != NULL) {
 			vector->data = data;
 			vector->length = length * vector->typeSize;
-			return vector->data != NULL;
+			return true;
 		}
 
 		return false;
@@ -115,19 +115,14 @@
 		return vector->typeSize;
 	}
 
-	/// Returns the last iterator position (same-as item count) of a vector.
-	size_t vector_last(vector* vector) {
-		return (vector->iterator / vector->typeSize);
+	/// Returns the item length of a vector.
+	size_t vector_length(vector* vector) {
+		return (vector->length / vector->typeSize);
 	}
 
 	/// Returns the item count (same-as last iterator position) of a vector.
 	size_t vector_count(vector* vector) {
-		return vector_last(vector);
-	}
-	
-	/// Returns the first position (0) of a vector. [Redundant, Placeholder]
-	size_t vector_first(vector* vector) {
-		return 0;
+		return (vector->iterator / vector->typeSize);
 	}
 
 	/// Returns FALSE if [iterator] is not within bounds length >= iterator >= 0, else TRUE and set new iterator position.
